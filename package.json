@@ -1,6 +1,6 @@
 {
   "name": "@watchman-tower/app-agent-nodejs",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Watchman Tower App Agent for Node.js applications",
   "homepage": "https://watchmantower.com",
   "bugs": {
