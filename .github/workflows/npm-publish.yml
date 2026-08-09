@@ -1,22 +1,35 @@
 name: Publish to npm
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version bump"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
-  publish:
-    name: Build and publish
+  release:
+    name: Version, build, and publish
     runs-on: ubuntu-latest
+    concurrency:
+      group: npm-publish
+      cancel-in-progress: false
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -27,18 +40,45 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify tag matches package version
+      - name: Verify release branch
         run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-
-          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
-            echo "Tag version ($TAG_VERSION) does not match package.json version ($PACKAGE_VERSION)."
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "Publish workflow must be run from main. Current ref: ${GITHUB_REF_NAME}"
             exit 1
           fi
 
-      - name: Build
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump package version
+        id: version
+        run: |
+          npm version "${{ inputs.version }}" --no-git-tag-version
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify npm version is new
+        run: |
+          if npm view "@watchman-tower/app-agent-nodejs@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
+            echo "Version ${{ steps.version.outputs.version }} already exists on npm."
+            exit 1
+          fi
+
+      - name: Build package
         run: npm run build
 
+      - name: Commit release
+        run: |
+          git add package.json package-lock.json dist
+          git commit -m "Release v${{ steps.version.outputs.version }}"
+          git tag "v${{ steps.version.outputs.version }}"
+
+      - name: Push release commit and tag
+        run: |
+          git push origin HEAD:main
+          git push origin "v${{ steps.version.outputs.version }}"
+
       - name: Publish
-        run: npm publish
+        run: npm publish --access public
