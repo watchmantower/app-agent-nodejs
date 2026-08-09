@@ -101,6 +101,30 @@ app.get("/health", (_req, res) => {
 app.use(AppAgent.errorHandler());
 ```
 
+## Runtime-only Usage
+
+If a project only needs process/runtime telemetry and should not collect Express
+HTTP metrics, disable HTTP telemetry:
+
+```js
+const { AppAgent } = require("@watchman-tower/app-agent-nodejs");
+
+AppAgent.init({
+  token: process.env.WT_APP_AGENT_TOKEN,
+  service: "worker",
+  env: process.env.NODE_ENV || "production",
+  http: {
+    enabled: false,
+  },
+  runtimeTelemetry: {
+    enabled: true,
+  },
+});
+```
+
+When `http.enabled` is `false`, `AppAgent.express()` returns a no-op middleware
+and no `type: "http"` payloads are produced.
+
 ## JavaScript Type Checking
 
 For JavaScript projects, enable editor-level config validation with `// @ts-check`
@@ -141,6 +165,7 @@ Unknown options are also rejected at runtime:
 | `sampleRate` | No | `1` | Request sampling ratio from `0` to `1`. |
 | `timeoutMs` | No | `2000` | Ingest request timeout in milliseconds. Clamped between `100` and `30000`. |
 | `debug` | No | `false` | Enables App Agent console logs. Tokens are never logged. |
+| `http.enabled` | No | `true` | Enables Express HTTP request metrics. Set to `false` for runtime-only telemetry. |
 | `maxRoutes` | No | `500` | Maximum unique route/status keys kept per flush interval. |
 | `maxRouteLength` | No | `160` | Maximum normalized route length. |
 | `ignorePaths` | No | Built-in static/noise paths | Additional paths ignored before sampling and collection. Values are merged with defaults. |

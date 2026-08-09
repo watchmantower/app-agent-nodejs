@@ -3,5 +3,6 @@ export type {
   AppAgentConfig,
   ErrorHandlerOptions,
   ExpressMiddlewareOptions,
+  HttpTelemetryOptions,
   RuntimeTelemetryOptions,
 } from "./types";

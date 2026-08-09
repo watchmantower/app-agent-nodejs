@@ -42,6 +42,7 @@ const APP_AGENT_CONFIG_KEYS = new Set([
   "flushIntervalSec",
   "timeoutMs",
   "debug",
+  "http",
   "maxRoutes",
   "maxRouteLength",
   "ignorePaths",
@@ -49,6 +50,9 @@ const APP_AGENT_CONFIG_KEYS = new Set([
   "maxErrorMessageLength",
   "maxErrorStackLength",
   "runtimeTelemetry",
+]);
+const HTTP_TELEMETRY_KEYS = new Set([
+  "enabled",
 ]);
 const RUNTIME_TELEMETRY_KEYS = new Set([
   "enabled",
@@ -130,6 +134,7 @@ class AppAgentImpl {
     validateKnownKeys(config, APP_AGENT_CONFIG_KEYS, "config");
     if (!config?.token) throw new Error("AppAgent token is required");
     if (!config?.service) throw new Error("AppAgent service is required");
+    validateKnownKeys(config.http, HTTP_TELEMETRY_KEYS, "http");
     validateKnownKeys(config.runtimeTelemetry, RUNTIME_TELEMETRY_KEYS, "runtimeTelemetry");
 
     this.config = {
@@ -179,6 +184,9 @@ class AppAgentImpl {
   express(opts?: ExpressMiddlewareOptions) {
     if (!this.initialized) {
       throw new Error("AppAgent.init() must be called before AppAgent.express()");
+    }
+    if (this.config!.http?.enabled === false) {
+      return (_req: unknown, _res: unknown, next: () => void) => next();
     }
     return createExpressMiddleware(this.httpCollector, {
       maxRoutes: this.config!.maxRoutes,

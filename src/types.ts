@@ -13,6 +13,8 @@ export type AppAgentConfig = {
   timeoutMs?: number;
   /** Enables AppAgent console logs. Defaults to false. Tokens are never logged. */
   debug?: boolean;
+  /** Enables or disables Express HTTP request metrics. Defaults to enabled. */
+  http?: HttpTelemetryOptions;
   /** Maximum unique route/status keys kept per flush interval. Defaults to 500. */
   maxRoutes?: number;
   /** Maximum normalized route length before truncation. Defaults to 160. */
@@ -27,6 +29,11 @@ export type AppAgentConfig = {
   maxErrorStackLength?: number;
   /** Optional process/runtime telemetry collection such as memory, CPU, event loop delay, workload, and Redis status. */
   runtimeTelemetry?: RuntimeTelemetryOptions;
+};
+
+export type HttpTelemetryOptions = {
+  /** Enables Express HTTP request metrics. Defaults to true. Set false for runtime-only telemetry. */
+  enabled?: boolean;
 };
 
 export type RuntimeTelemetryOptions = {
