@@ -2,12 +2,13 @@ import { AppAgentConfig, ErrorHandlerOptions, ExpressMiddlewareOptions } from ".
 import { HttpCollector } from "./collector/httpCollector";
 import { ErrorCollector } from "./collector/errorCollector";
 import { RuntimeCollector } from "./collector/runtimeCollector";
+import { ScannerTrafficCollector } from "./collector/scannerTrafficCollector";
 import { createExpressMiddleware } from "./http/express";
 import { createErrorHandler } from "./http/errorHandler";
 import { sendIngest } from "./exporter/httpExporter";
 
 const AGENT_NAME = "app-agent-nodejs";
-const INGEST_ENDPOINT = "https://metrik.watchmantower.com/app-agent/ingest";
+const INGEST_ENDPOINT = "https://metric.watchmantower.com/app-agent/ingest";
 const DEV_ENDPOINT_ENV = "WT_APP_AGENT_DEV_ENDPOINT";
 const DEFAULT_IGNORE_PATHS = [
   /^\/cdn-cgi(?:\/|$)/,
@@ -43,6 +44,7 @@ const APP_AGENT_CONFIG_KEYS = new Set([
   "timeoutMs",
   "debug",
   "http",
+  "scannerTraffic",
   "maxRoutes",
   "maxRouteLength",
   "ignorePaths",
@@ -53,6 +55,12 @@ const APP_AGENT_CONFIG_KEYS = new Set([
 ]);
 const HTTP_TELEMETRY_KEYS = new Set([
   "enabled",
+]);
+const SCANNER_TRAFFIC_KEYS = new Set([
+  "enabled",
+  "report",
+  "action",
+  "patterns",
 ]);
 const RUNTIME_TELEMETRY_KEYS = new Set([
   "enabled",
@@ -113,6 +121,7 @@ class AppAgentImpl {
   private httpCollector = new HttpCollector();
   private errorCollector = new ErrorCollector();
   private runtimeCollector = new RuntimeCollector();
+  private scannerTrafficCollector = new ScannerTrafficCollector();
   private flushTimer?: NodeJS.Timeout;
   private runtimeTimer?: NodeJS.Timeout;
   private flushing = false;
@@ -135,6 +144,7 @@ class AppAgentImpl {
     if (!config?.token) throw new Error("AppAgent token is required");
     if (!config?.service) throw new Error("AppAgent service is required");
     validateKnownKeys(config.http, HTTP_TELEMETRY_KEYS, "http");
+    validateKnownKeys(config.scannerTraffic, SCANNER_TRAFFIC_KEYS, "scannerTraffic");
     validateKnownKeys(config.runtimeTelemetry, RUNTIME_TELEMETRY_KEYS, "runtimeTelemetry");
 
     this.config = {
@@ -143,6 +153,12 @@ class AppAgentImpl {
       debug: false,
       flushIntervalSec: DEFAULT_FLUSH_INTERVAL_SEC,
       ...config,
+      scannerTraffic: {
+        enabled: true,
+        action: "drop",
+        report: false,
+        ...(config.scannerTraffic || {}),
+      },
       ignorePaths: [
         ...DEFAULT_IGNORE_PATHS,
         ...(config.ignorePaths || []),
@@ -193,6 +209,8 @@ class AppAgentImpl {
       maxRouteLength: this.config!.maxRouteLength,
       ignorePaths: this.config!.ignorePaths,
       sampleRate: this.config!.sampleRate,
+      scannerTraffic: this.config!.scannerTraffic,
+      scannerCollector: this.scannerTrafficCollector,
       ...opts,
     });
   }
@@ -207,6 +225,7 @@ class AppAgentImpl {
       maxErrorMessageLength: this.config!.maxErrorMessageLength,
       maxErrorStackLength: this.config!.maxErrorStackLength,
       maxRouteLength: this.config!.maxRouteLength,
+      scannerTraffic: this.config!.scannerTraffic,
       ...opts,
     });
   }
@@ -259,6 +278,7 @@ class AppAgentImpl {
     try {
       const { metrics, droppedCount } = this.httpCollector.snapshotAndReset();
       const { errors, droppedCount: droppedErrorCount } = this.errorCollector.snapshotAndReset();
+      const { metrics: scannerTraffic } = this.scannerTrafficCollector.snapshotAndReset();
 
       if (metrics.length || droppedCount) {
         const payload = {
@@ -310,6 +330,36 @@ class AppAgentImpl {
         };
 
         this.log("[AppAgent][flush:error]", payload);
+
+        await sendIngest(
+          getIngestEndpoint(),
+          this.config!.token,
+          payload,
+          this.config!.timeoutMs
+        );
+      }
+
+      if (scannerTraffic.length) {
+        const payload = {
+          v: 1,
+          type: "security",
+          application: {
+            service: this.config!.service,
+            env: this.config!.env,
+            runtime: "nodejs",
+          },
+          agent: {
+            name: AGENT_NAME,
+            version: AGENT_VERSION,
+          },
+          timestamp: Date.now(),
+          interval_sec: this.config!.flushIntervalSec,
+          security: {
+            scannerTraffic,
+          },
+        };
+
+        this.log("[AppAgent][flush:security]", payload);
 
         await sendIngest(
           getIngestEndpoint(),

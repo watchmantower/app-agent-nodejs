@@ -1,7 +1,8 @@
 import type { ErrorRequestHandler, Request } from "express";
 import { ErrorCollector } from "../collector/errorCollector";
-import { ErrorHandlerOptions } from "../types";
+import { ErrorHandlerOptions, ScannerTrafficOptions } from "../types";
 import { normalizeRoute } from "./express";
+import { classifyScannerTraffic } from "./scannerTraffic";
 
 const DEFAULT_MAX_ERRORS = 100;
 const DEFAULT_MAX_MESSAGE_LENGTH = 500;
@@ -28,9 +29,13 @@ function getErrorMessage(err: any, maxLength: number) {
 
 export function createErrorHandler(
   collector: ErrorCollector,
-  opts?: ErrorHandlerOptions & { maxRouteLength?: number }
+  opts?: ErrorHandlerOptions & {
+    maxRouteLength?: number;
+    scannerTraffic?: ScannerTrafficOptions;
+  }
 ): ErrorRequestHandler {
   const captureStack = opts?.captureStack ?? false;
+  const captureClientErrors = opts?.captureClientErrors ?? false;
   const maxErrors = opts?.maxErrors ?? DEFAULT_MAX_ERRORS;
   const maxMessageLength = opts?.maxErrorMessageLength ?? DEFAULT_MAX_MESSAGE_LENGTH;
   const maxStackLength = opts?.maxErrorStackLength ?? DEFAULT_MAX_STACK_LENGTH;
@@ -38,11 +43,21 @@ export function createErrorHandler(
 
   return function appAgentErrorHandler(err, req: Request, res, next) {
     try {
+      const status = getStatus(err, res.statusCode);
+      if (!captureClientErrors && status < 500) {
+        next(err);
+        return;
+      }
+      if (classifyScannerTraffic(req, opts?.scannerTraffic)) {
+        next(err);
+        return;
+      }
+
       collector.record(
         {
           method: req.method,
           route: normalizeRoute(req, maxRouteLength),
-          status: getStatus(err, res.statusCode),
+          status,
           name: getErrorName(err),
           message: getErrorMessage(err, maxMessageLength),
           stack: captureStack ? truncate(err?.stack, maxStackLength) : null,

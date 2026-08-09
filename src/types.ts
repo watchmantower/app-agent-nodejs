@@ -15,6 +15,8 @@ export type AppAgentConfig = {
   debug?: boolean;
   /** Enables or disables Express HTTP request metrics. Defaults to enabled. */
   http?: HttpTelemetryOptions;
+  /** Classifies common scanner/probe traffic before it pollutes application telemetry. Defaults to enabled. */
+  scannerTraffic?: ScannerTrafficOptions;
   /** Maximum unique route/status keys kept per flush interval. Defaults to 500. */
   maxRoutes?: number;
   /** Maximum normalized route length before truncation. Defaults to 160. */
@@ -34,6 +36,17 @@ export type AppAgentConfig = {
 export type HttpTelemetryOptions = {
   /** Enables Express HTTP request metrics. Defaults to true. Set false for runtime-only telemetry. */
   enabled?: boolean;
+};
+
+export type ScannerTrafficOptions = {
+  /** Enables scanner/probe path classification. Defaults to true. */
+  enabled?: boolean;
+  /** Sends aggregated scanner traffic as a security signal. Defaults to false. */
+  report?: boolean;
+  /** Scanner path handling. "drop" excludes from HTTP/error telemetry, "metric" also reports aggregated scanner traffic. Defaults to "drop". */
+  action?: "drop" | "metric";
+  /** Additional path prefixes or regular expressions treated as scanner/probe traffic. */
+  patterns?: Array<string | RegExp>;
 };
 
 export type RuntimeTelemetryOptions = {
@@ -69,6 +82,8 @@ export type ExpressMiddlewareOptions = {
 export type ErrorHandlerOptions = {
   /** Captures truncated stack traces when true. Defaults to false. */
   captureStack?: boolean;
+  /** Captures 4xx errors that pass through Express error middleware. Defaults to false. */
+  captureClientErrors?: boolean;
   /** Maximum unique error fingerprints kept per flush interval. */
   maxErrors?: number;
   /** Maximum captured error message length. */

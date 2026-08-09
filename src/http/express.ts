@@ -1,7 +1,9 @@
 // src/http/express.ts
 import type { Request, RequestHandler } from "express";
 import { HttpCollector } from "../collector/httpCollector";
-import { ExpressMiddlewareOptions } from "../types";
+import { ScannerTrafficCollector } from "../collector/scannerTrafficCollector";
+import { ExpressMiddlewareOptions, ScannerTrafficOptions } from "../types";
+import { classifyScannerTraffic } from "./scannerTraffic";
 
 type Key = string;
 
@@ -150,7 +152,11 @@ export class HttpMetricsStore {
 
 export function createExpressMiddleware(
   collector: HttpCollector,
-  opts?: ExpressMiddlewareOptions & { sampleRate?: number }
+  opts?: ExpressMiddlewareOptions & {
+    sampleRate?: number;
+    scannerTraffic?: ScannerTrafficOptions;
+    scannerCollector?: ScannerTrafficCollector;
+  }
 ): RequestHandler {
   const maxRoutes = opts?.maxRoutes ?? opts?.maxKeys ?? DEFAULT_MAX_ROUTES;
   const maxRouteLength = opts?.maxRouteLength ?? DEFAULT_MAX_ROUTE_LENGTH;
@@ -167,6 +173,18 @@ export function createExpressMiddleware(
 
         const route = normalizeRoute(req, maxRouteLength);
         const status = res.statusCode;
+        const scannerTraffic = classifyScannerTraffic(req, opts?.scannerTraffic);
+        if (scannerTraffic) {
+          if (opts?.scannerTraffic?.report || opts?.scannerTraffic?.action === "metric") {
+            opts?.scannerCollector?.record({
+              category: scannerTraffic.category,
+              path: scannerTraffic.path,
+              method: req.method,
+              status,
+            });
+          }
+          return;
+        }
 
         if (collector.size() >= maxRoutes && !collector.has(req.method, route, status)) {
           collector.recordDropped();
