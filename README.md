@@ -166,6 +166,10 @@ Unknown options are also rejected at runtime:
 | `timeoutMs` | No | `2000` | Ingest request timeout in milliseconds. Clamped between `100` and `30000`. |
 | `debug` | No | `false` | Enables App Agent console logs. Tokens are never logged. |
 | `http.enabled` | No | `true` | Enables Express HTTP request metrics. Set to `false` for runtime-only telemetry. |
+| `scannerTraffic.enabled` | No | `true` | Classifies common scanner/probe paths before they pollute application telemetry. |
+| `scannerTraffic.action` | No | `"drop"` | `"drop"` excludes scanner traffic from HTTP/error telemetry. `"metric"` also reports aggregated security telemetry. |
+| `scannerTraffic.report` | No | `false` | Sends scanner traffic as a `type: "security"` payload. |
+| `scannerTraffic.patterns` | No | - | Additional path prefixes or regular expressions treated as scanner/probe traffic. |
 | `maxRoutes` | No | `500` | Maximum unique route/status keys kept per flush interval. |
 | `maxRouteLength` | No | `160` | Maximum normalized route length. |
 | `ignorePaths` | No | Built-in static/noise paths | Additional paths ignored before sampling and collection. Values are merged with defaults. |
@@ -208,6 +212,25 @@ app.use(AppAgent.errorHandler({
 }));
 ```
 
+By default, client errors that pass through Express error middleware are not
+reported as application exceptions. This keeps 404/401/403 style responses and
+common scanner noise out of the Exceptions view. Server errors are still
+captured:
+
+```txt
+4xx -> not captured as an exception by default
+5xx -> captured as an application exception
+```
+
+If your application intentionally throws meaningful 4xx errors and you want to
+capture them as exceptions, opt in:
+
+```js
+app.use(AppAgent.errorHandler({
+  captureClientErrors: true,
+}));
+```
+
 By default, error capture sends aggregate-safe fields:
 
 - method
@@ -220,6 +243,53 @@ By default, error capture sends aggregate-safe fields:
 
 Stack traces are disabled by default. Request body, headers, and query strings
 are never captured.
+
+## Scanner Traffic
+
+The agent classifies common internet scanner/probe requests before they pollute
+application telemetry. Examples include WordPress probes, random PHP files,
+`.env`, `.git`, phpMyAdmin, Adminer, backup files, and similar exploit scans.
+
+Default behavior is to drop scanner traffic from HTTP and error telemetry:
+
+```js
+AppAgent.init({
+  token: process.env.WT_APP_AGENT_TOKEN,
+  service: "api",
+  scannerTraffic: {
+    enabled: true,
+    action: "drop",
+  },
+});
+```
+
+To also send aggregated scanner traffic as a security signal:
+
+```js
+AppAgent.init({
+  token: process.env.WT_APP_AGENT_TOKEN,
+  service: "api",
+  scannerTraffic: {
+    action: "metric",
+  },
+});
+```
+
+You can add project-specific scanner patterns without replacing the built-in
+patterns:
+
+```js
+AppAgent.init({
+  token: process.env.WT_APP_AGENT_TOKEN,
+  service: "api",
+  scannerTraffic: {
+    patterns: [
+      /^\/legacy-admin(?:\/|$)/,
+      "/private-config",
+    ],
+  },
+});
+```
 
 ## Runtime Telemetry
 
@@ -328,6 +398,27 @@ Runtime payloads use `runtime.process`, not infrastructure-specific names:
     "eventLoop": {},
     "workload": {},
     "redis": {}
+  }
+}
+```
+
+When `scannerTraffic.action` is `"metric"` or `scannerTraffic.report` is `true`,
+scanner traffic is sent separately from HTTP and exception telemetry:
+
+```json
+{
+  "v": 1,
+  "type": "security",
+  "security": {
+    "scannerTraffic": [
+      {
+        "category": "wordpress_probe",
+        "count": 12,
+        "samplePaths": ["/wp-admin", "/wp-login.php"],
+        "methods": { "GET": 12 },
+        "statuses": { "404": 12 }
+      }
+    ]
   }
 }
 ```
