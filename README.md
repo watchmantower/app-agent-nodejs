@@ -307,28 +307,6 @@ Runtime payloads use `runtime.process`, not infrastructure-specific names:
 }
 ```
 
-## Endpoint
-
-The production ingest endpoint is fixed:
-
-```txt
-https://metrik.watchmantower.com/app-agent/ingest
-```
-
-It cannot be changed through `AppAgent.init()`.
-
-For local package development only, set `WT_APP_AGENT_DEV_ENDPOINT` while
-`NODE_ENV !== "production"`:
-
-```bash
-NODE_ENV=development \
-WT_APP_AGENT_DEV_ENDPOINT=http://localhost:1800/app-agent/ingest \
-npm run dev
-```
-
-Production processes always use the fixed Watchman Tower endpoint and ignore the
-development override.
-
 ## Watchman Tower
 
 Use Watchman Tower to create and manage the App Agent identity and token used by
@@ -343,6 +321,7 @@ this package.
 - Keep the token in an environment variable.
 - Do not enable `debug` in normal production traffic unless you are diagnosing an issue.
 - Ingest failures are swallowed so the monitored application keeps running.
+- The ingest endpoint is managed by the package and cannot be changed through `AppAgent.init()`.
 - Unknown config options throw during `AppAgent.init()`.
 - `flushIntervalSec` and `runtimeTelemetry.intervalSec` must be between `10` and `3600`.
 - Duration buckets only include non-zero buckets.
