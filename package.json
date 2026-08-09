@@ -1,0 +1,43 @@
+{
+  "name": "@watchman-tower/app-agent-nodejs",
+  "version": "0.0.5",
+  "description": "Watchman Tower App Agent for Node.js applications",
+  "homepage": "https://github.com/watchmantower/app-agent-nodejs#readme",
+  "bugs": {
+    "url": "https://github.com/watchmantower/app-agent-nodejs/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/watchmantower/app-agent-nodejs.git"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsc -w",
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "watchmantower",
+    "monitoring",
+    "apm",
+    "nodejs",
+    "observability"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "express": ">=4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.25",
+    "@types/node": "^25.2.1",
+    "express": "^4.22.2",
+    "typescript": "^5.0.0"
+  }
+}
