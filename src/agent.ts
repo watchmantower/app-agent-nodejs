@@ -66,6 +66,7 @@ const RUNTIME_TELEMETRY_KEYS = new Set([
   "enabled",
   "intervalSec",
   "eventLoopDelay",
+  "gc",
   "getActiveChecks",
   "getQueuedJobs",
   "getCompletedChecks",

@@ -56,6 +56,8 @@ export type RuntimeTelemetryOptions = {
   intervalSec?: number;
   /** Enables Node.js event loop delay histogram collection. Defaults to true. */
   eventLoopDelay?: boolean;
+  /** Enables Node.js garbage collection telemetry. Defaults to true. */
+  gc?: boolean;
   /** Optional callback returning active application work count for the current interval. */
   getActiveChecks?: () => number | null;
   /** Optional callback returning queued job count for the current interval. */
