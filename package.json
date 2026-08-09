@@ -1,8 +1,8 @@
 {
   "name": "@watchman-tower/app-agent-nodejs",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Watchman Tower App Agent for Node.js applications",
-  "homepage": "https://github.com/watchmantower/app-agent-nodejs#readme",
+  "homepage": "https://watchmantower.com",
   "bugs": {
     "url": "https://github.com/watchmantower/app-agent-nodejs/issues"
   },
@@ -22,10 +22,13 @@
   },
   "keywords": [
     "watchmantower",
+    "watchman-tower",
     "monitoring",
     "apm",
     "nodejs",
-    "observability"
+    "express",
+    "observability",
+    "telemetry"
   ],
   "license": "MIT",
   "publishConfig": {

@@ -7,6 +7,15 @@ Watchman Tower with an App Agent token. It is designed to be safe for production
 telemetry is aggregated in memory, sent on a timer, and ingest failures are
 swallowed so the monitored application keeps running.
 
+## Preview Access
+
+App Agent is currently in a test phase. If you want to try it with your Watchman
+Tower account, contact [support@watchmantower.com](mailto:support@watchmantower.com).
+
+- Website: [watchmantower.com](https://watchmantower.com)
+- App: [app.watchmantower.com](https://app.watchmantower.com)
+- Support: [support@watchmantower.com](mailto:support@watchmantower.com)
+
 ## Features
 
 - Aggregated Express HTTP metrics
@@ -23,6 +32,10 @@ swallowed so the monitored application keeps running.
 ```bash
 npm install @watchman-tower/app-agent-nodejs
 ```
+
+You need a Watchman Tower App Agent token before telemetry can be accepted. App
+Agent access is currently limited while the feature is in testing; email
+[support@watchmantower.com](mailto:support@watchmantower.com) to request access.
 
 Peer dependency:
 
@@ -315,6 +328,15 @@ npm run dev
 
 Production processes always use the fixed Watchman Tower endpoint and ignore the
 development override.
+
+## Watchman Tower
+
+Use Watchman Tower to create and manage the App Agent identity and token used by
+this package.
+
+- Product website: [https://watchmantower.com](https://watchmantower.com)
+- Application: [https://app.watchmantower.com](https://app.watchmantower.com)
+- Access and support: [support@watchmantower.com](mailto:support@watchmantower.com)
 
 ## Production Notes
 
