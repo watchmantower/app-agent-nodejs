@@ -71,7 +71,7 @@ jobs:
 
       - name: Commit release
         run: |
-          git add package.json package-lock.json dist
+          git add package.json package-lock.json
           git commit -m "Release v${{ steps.version.outputs.version }}"
           git tag "v${{ steps.version.outputs.version }}"
 
