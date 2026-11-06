@@ -125,7 +125,8 @@ export class RuntimeCollector {
 
     this.gcObserver = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        const rawKind = (entry as { kind?: number; detail?: { kind?: number } }).kind ?? (entry as { detail?: { kind?: number } }).detail?.kind;
+        // detail.kind first: reading entry.kind raises DEP0152 on Node 16+.
+        const rawKind = (entry as { detail?: { kind?: number } }).detail?.kind ?? (entry as { kind?: number }).kind;
         const durationMs = Number.isFinite(entry.duration) ? entry.duration : 0;
         const kind =
           rawKind === constants.NODE_PERFORMANCE_GC_MAJOR
