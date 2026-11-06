@@ -1,0 +1,30 @@
+# Every PR and push to main builds the package and runs the tests (WT-214).
+# The publish workflow runs the same tests before it bumps and publishes.
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Oldest and newest Node the agent is expected to run inside.
+        node: [18, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test

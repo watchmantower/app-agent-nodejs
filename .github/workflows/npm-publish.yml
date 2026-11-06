@@ -40,6 +40,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # A broken build must never reach npm (WT-214).
+      - name: Test
+        run: npm test
+
       - name: Verify release branch
         run: |
           if [ "${GITHUB_REF_NAME}" != "main" ]; then
